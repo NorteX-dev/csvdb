@@ -13,43 +13,110 @@ export interface IColumn {
 	validate?: (value: any) => boolean;
 }
 
-export interface IField {
+export interface ISchema {
 	[key: string]: IColumn;
 }
 
+export interface IValues {
+	[key: string]: any;
+}
+
+interface IInitOptions {
+	instance: CsvDB;
+	schema: ISchema;
+	modelName: string;
+}
+
 export class Model {
+	static conn: CsvDB;
+	static modelName: string;
+	static file: string;
+	static schema: any;
+
 	conn: CsvDB;
-	name: string;
-	fields: any;
+	modelName: string;
+	file: string;
+	schema: any;
+	values: any[];
 
-	constructor(conn: CsvDB, name: string) {
-		this.conn = conn;
-		this.name = name;
+	static init(options: IInitOptions) {
+		if (!options) throw new Error("Model.init(): options are required");
+		if (!options.instance) throw new Error("Model.init(): options.instance is required");
+		if (!options.schema) throw new Error("Model.init(): options.schema is required");
+		if (!options.modelName) throw new Error("Model.init(): options.modelName is required");
+
+		this.conn = options.instance;
+		this.modelName = options.modelName;
+		this.file = `${this.conn.directory}/${this.modelName}.csv`;
+		this.schema = options.schema;
 	}
 
-	private checkFields(fields): Error | null {
-		if (!fields) {
-			return new Error("fields are required");
-		}
-		if (typeof fields !== "object") {
-			return new Error("fields must be an object");
-		}
-		if (Object.keys(fields).length === 0) {
-			return new Error("fields must have at least one field");
-		}
-		return null;
+	static ensureReady() {
+		// Static ensure
+		if (!this.conn) throw new Error("Can't perform operation on model before it's initialisation");
+		if (!this.modelName) throw new Error("Can't perform operation on model before it's initialisation");
+		if (!this.file) throw new Error("Can't perform operation on model before it's initialisation");
+		this.conn.ensureDirectory();
+		this.conn.ensureFile(this.file);
 	}
 
-	private isDatabaseReady(): boolean {
-		return true;
+	static async create() {
+		this.ensureReady();
+		const contents = await this.conn.readContents(this.file);
+		const parsedContents = this.conn.parseModel(contents);
+		// write new row to file
+		return await this.conn.writeContents(this.file, this);
 	}
 
-	schema(fields: IField = {}) {
-		const err = this.checkFields(fields);
-		if (err) {
-			throw new Error("Database.define(): fields are invalid:\n" + err.message);
-		}
-		this.fields = fields;
-		return this.fields;
+	private static _match(parsedContents: IValues, query: { [key: string]: any }) {
+		return parsedContents.find((row) => {
+			let match = true;
+			Object.keys(query).forEach((key) => {
+				if (row[key] !== query[key]) match = false;
+			});
+			return match;
+		});
+	}
+
+	static async findOne(query: { [key: string]: any }) {
+		this.ensureReady();
+		const contents = await this.conn.readContents(this.file);
+		const parsedContents = this.conn.parseModel(contents);
+		const result = Model._match(parsedContents, query);
+		if (!result) return null;
+
+		// Found row, create new instance of model and return it.
+		const model = new Model();
+		model.conn = this.conn;
+		model.modelName = this.modelName;
+		model.file = this.file;
+		model.schema = this.schema;
+		model.values = result;
+		return model;
+	}
+
+	ensureReady() {
+		// Fetched ensure
+		if (!this.conn) throw new Error("Can't perform operation on model before it's initialisation");
+		if (!this.modelName) throw new Error("Can't perform operation on model before it's initialisation");
+		if (!this.file) throw new Error("Can't perform operation on model before it's initialisation");
+		this.conn.ensureDirectory();
+		this.conn.ensureFile(this.file);
+	}
+
+	async save() {
+		this.ensureReady();
+		if (!this.values || !this.values.length) this.values = [];
+		return await this.conn.writeContents(this.file, this);
+	}
+
+	set(key: string, value: any) {
+		if (!this.values || !this.values.length) this.values = [];
+		this.values[key] = value;
+	}
+
+	get(key: string) {
+		if (!this.values || !this.values.length) this.values = [];
+		return this.values[key];
 	}
 }

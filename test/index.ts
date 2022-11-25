@@ -1,11 +1,6 @@
-import { CsvDB, Model, DataType, Row } from "../src";
+import { CsvDB, Model, DataType } from "../src";
 
-const connection = new CsvDB({
-	directory: "test/data",
-});
-
-const model = new Model(connection, "test");
-model.schema({
+const schema = {
 	id: {
 		type: DataType.Number,
 		required: true,
@@ -20,6 +15,26 @@ model.schema({
 		type: DataType.String,
 		required: true,
 	},
-});
+};
 
-console.log(model);
+class User extends Model {}
+
+(async () => {
+	const conn = new CsvDB({
+		directory: "test/data",
+	});
+
+	User.init({
+		instance: conn,
+		schema: schema,
+		modelName: "users",
+	});
+
+	const user = await User.findOne({ id: "1" });
+	if (!user) return console.warn("no user found mf");
+
+	// console.log("CLASS", User);
+	user.set("username", "testusername123");
+	console.log("INSTANCE", user);
+	// await user.save();
+})();
