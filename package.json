@@ -1,6 +1,28 @@
 {
-  "devDependencies": {
-    "prettier": "^2.8.0",
-    "typescript": "^4.9.3"
-  }
+	"name": "csvdb",
+	"version": "1.0.0",
+	"description": "This is just a meme lol",
+	"main": "index.js",
+	"directories": {
+		"test": "test"
+	},
+	"dependencies": {
+		"prettier": "^2.8.0",
+		"typescript": "^4.9.3"
+	},
+	"devDependencies": {},
+	"scripts": {
+		"dev": "nodemon test/index.ts"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/NorteX-dev/csvdb.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/NorteX-dev/csvdb/issues"
+	},
+	"homepage": "https://github.com/NorteX-dev/csvdb#readme"
 }

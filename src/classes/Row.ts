@@ -1,9 +1,9 @@
 import CsvDB from "./CsvDB";
 
-export default class Row {
-	private db: CsvDB;
+export class Row {
+	private conn: CsvDB;
 
-	constructor(db: CsvDB) {
-		this.db = db;
+	constructor(conn: CsvDB) {
+		this.conn = conn;
 	}
 }
